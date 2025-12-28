@@ -4,6 +4,16 @@ setlocal
 set "BINARY_NAME=devtool.exe"
 set "INSTALL_DIR=%USERPROFILE%\bin"
 
+
+echo Checking for mise...
+where mise >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo mise found. Installing dependencies...
+    call mise install
+) else (
+    echo mise not found. Skipping 'mise install'. Ensure Go is available.
+)
+
 echo Building %BINARY_NAME%...
 go build -o %BINARY_NAME% main.go
 

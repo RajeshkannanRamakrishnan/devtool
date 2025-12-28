@@ -4,6 +4,15 @@
 BINARY_NAME="devtool"
 INSTALL_DIR="/usr/local/bin"
 
+
+# Check if mise is installed and run mise install
+if command -v mise &> /dev/null; then
+    echo "mise found. Installing dependencies..."
+    mise install
+else
+    echo "mise not found. Skipping 'mise install'. Ensure Go is available."
+fi
+
 echo "Building $BINARY_NAME..."
 go build -o $BINARY_NAME main.go
 
