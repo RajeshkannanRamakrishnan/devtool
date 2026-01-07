@@ -15,6 +15,7 @@ if %ERRORLEVEL% EQU 0 (
 )
 
 echo Building %BINARY_NAME%...
+set CGO_ENABLED=0
 go build -o %BINARY_NAME% main.go
 
 if %ERRORLEVEL% NEQ 0 (

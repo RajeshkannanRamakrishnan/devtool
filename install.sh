@@ -14,7 +14,7 @@ else
 fi
 
 echo "Building $BINARY_NAME..."
-go build -o $BINARY_NAME main.go
+CGO_ENABLED=0 go build -o $BINARY_NAME main.go
 
 if [ $? -ne 0 ]; then
     echo "Build failed! Please check your Go code."

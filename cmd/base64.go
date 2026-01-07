@@ -17,6 +17,8 @@ var base64Cmd = &cobra.Command{
 	Long: `Encode or decode strings to/from Base64.
 By default, the command encodes the provided string arguments.
 Use the --decode (or -d) flag to decode a Base64 string.`,
+	Example: `  devtool base64 "Hello World"
+  devtool base64 --decode "SGVsbG8gV29ybGQ="`,
 	Run: func(cmd *cobra.Command, args []string) {
 		input := strings.Join(args, " ")
 		

@@ -17,6 +17,8 @@ var md5Cmd = &cobra.Command{
 	Short: "Computes the MD5 hash of the input string",
 	Long: `Computes the MD5 hash of the given string arguments. 
 If the --upper flag is used, the output will be in uppercase.`,
+	Example: `  devtool md5 "password123"
+  devtool md5 --upper "password123"`,
 	Run: func(cmd *cobra.Command, args []string) {
 		input := strings.Join(args, " ")
 		hash := md5.Sum([]byte(input))

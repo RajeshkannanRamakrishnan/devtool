@@ -19,9 +19,8 @@ var killCmd = &cobra.Command{
 	Use:   "kill",
 	Short: "Kill a process by PID or Port",
 	Long: `Kill a process by specifying its Process ID (PID) or the Port it is listening on.
-
-Examples:
-  devtool kill --pid 1234
+Safe and easy way to terminate rogue processes during development.`,
+	Example: `  devtool kill --pid 1234
   devtool kill --port 8080`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if killPid == 0 && killPort == 0 {

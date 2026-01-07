@@ -22,6 +22,9 @@ var portsCmd = &cobra.Command{
 By default, shows PID, Name, and Port.
 Use --show-path (or -p) to include the executable path.
 Use --filter (or -f) to filter by process name.`,
+	Example: `  devtool ports
+  devtool ports --filter chrome
+  devtool ports --show-path`,
 	Run: func(cmd *cobra.Command, args []string) {
 		connections, err := net.Connections("inet")
 		if err != nil {

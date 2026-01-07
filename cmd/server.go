@@ -17,6 +17,8 @@ var serverCmd = &cobra.Command{
 	Short: "Start a static file server",
 	Long: `Start a static HTTP file server for the current directory.
 You can specify the port using the --port (or -p) flag.`,
+	Example: `  devtool server
+  devtool server --port 9090`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, err := os.Getwd()
 		if err != nil {

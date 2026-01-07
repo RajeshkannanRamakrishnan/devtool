@@ -15,13 +15,16 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "devtool",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "A comprehensive developer toolkit",
+	Long: `Devtool is a comprehensive toolkit designed to assist developers with common tasks.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+It provides a collection of utilities including:
+  - base64: Encode and decode Base64 strings
+  - kill: Terminate processes by PID or Port
+  - md5: Compute MD5 hashes (with optional uppercase support)
+  - ports: List and filter processes listening on ports
+  - server: Start a static HTTP file server
+  - upper: Convert strings to uppercase`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },

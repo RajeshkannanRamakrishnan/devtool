@@ -12,6 +12,7 @@ var upperCmd = &cobra.Command{
 	Use:   "upper",
 	Short: "Converts input to upper case",
 	Long: `Converts the given string arguments to command upper case.`,
+	Example: `  devtool upper "hello world"`,
 	Run: func(cmd *cobra.Command, args []string) {
 		input := strings.Join(args, " ")
 		fmt.Println(strings.ToUpper(input))
