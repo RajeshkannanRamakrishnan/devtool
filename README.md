@@ -16,6 +16,7 @@
     -   `base64`: Encode and decode Base64 strings.
     -   `md5`: Compute MD5 hashes of input strings (with uppercase support).
     -   `upper`: Convert text to uppercase.
+    -   `json`: Pretty print or minify JSON with colors.
 
 ## Installation
 
@@ -146,6 +147,24 @@ Convert string to uppercase:
 devtool upper "hello world"
 # Output: HELLO WORLD
 ```
+
+### JSON Utilities
+
+Pretty print JSON (with colors):
+```bash
+echo '{"foo":"bar"}' | devtool json
+# Output:
+# {
+#   "foo": "bar"
+# }
+```
+
+Minify JSON:
+```bash
+echo '{\n  "foo": "bar"\n}' | devtool json --minify
+# Output: {"foo":"bar"}
+```
+
 
 ## Development
 
