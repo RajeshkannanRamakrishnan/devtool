@@ -101,8 +101,7 @@ devtool kill --port 8080
 Generate MD5 hash:
 ```bash
 devtool md5 "hello world"
-# Output: 5eb63bbbe01eeed093cb22bb8f5- Updated `Short` and `Long` descriptions for all commands to be more descriptive.
-- Added usage `Example` sections to `base64`, `kill`, `md5`, `ports`, `server`, and `upper` commands.acdc3
+# Output: 5eb63bbbe01eeed093cb22bb8f5acdc3
 ```
 
 Generate uppercase hash:
