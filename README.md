@@ -11,10 +11,11 @@
     -   `kill`: Terminate processes by PID or Port number (e.g., kill the process on port 8080).
     -   `ports`: List all processes listening on network ports, with filtering capabilities.
 -   **Web & Network**:
-    -   `server`: Instantly start a static HTTP file server in the current directory.
+    -   `server`: Start a static HTTP/HTTPS file server in the current directory.
 -   **Utilities**:
-    -   `base64`: Encode and decode Base64 strings.
-    -   `md5`: Compute MD5 hashes of input strings (with uppercase support).
+    -   `base64`: Encode and decode Base64 strings, files, or stdin.
+    -   `md5`: Compute MD5 hashes of strings, files, or stdin.
+    -   `sha256`: Compute SHA256 hashes of strings, files, or stdin.
     -   `upper`: Convert text to uppercase.
     -   `json`: Pretty print or minify JSON with colors.
 
@@ -71,15 +72,23 @@ mv devtool /usr/local/bin/
 
 Run `devtool --help` to see the full list of commands.
 
+### Flexible Input Support
+Commands like `md5`, `sha256`, and `base64` support input from:
+1. **Arguments**: `devtool md5 "text"`
+2. **Files**: `devtool md5 myfile.txt`
+3. **Stdin**: `echo "text" | devtool md5`
+
 ### Base64 Encoding/Decoding
 
-Encode a string:
+Encode a string, file, or stdin:
 ```bash
 devtool base64 "Hello World"
 # Output: SGVsbG8gV29ybGQ=
+
+devtool base64 myfile.txt
 ```
 
-Decode a string:
+Decode:
 ```bash
 devtool base64 --decode "SGVsbG8gV29ybGQ="
 # Output: Hello World
@@ -97,12 +106,18 @@ Kill the process listening on a specific port (e.g., 8080):
 devtool kill --port 8080
 ```
 
-### MD5 Hashing
+### Hashing (MD5 & SHA256)
 
 Generate MD5 hash:
 ```bash
 devtool md5 "hello world"
 # Output: 5eb63bbbe01eeed093cb22bb8f5acdc3
+```
+
+Generate SHA256 hash:
+```bash
+devtool sha256 "hello world"
+# Output: b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
 ```
 
 Generate uppercase hash:
@@ -138,6 +153,12 @@ devtool server
 Start on a specific port:
 ```bash
 devtool server --port 9090
+```
+
+Start with HTTPS (Self-Signed Certificate):
+```bash
+devtool server --ssl
+# Serving at https://localhost:8080
 ```
 
 ### String Manipulation

@@ -20,17 +20,23 @@ Use the --decode (or -d) flag to decode a Base64 string.`,
 	Example: `  devtool base64 "Hello World"
   devtool base64 --decode "SGVsbG8gV29ybGQ="`,
 	Run: func(cmd *cobra.Command, args []string) {
-		input := strings.Join(args, " ")
+		input, err := getInput(args)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
 		
 		if decodeBase64 {
-			decoded, err := base64.StdEncoding.DecodeString(input)
+			// Trim whitespace for safety when decoding
+			trimmedInput := strings.TrimSpace(string(input))
+			decoded, err := base64.StdEncoding.DecodeString(trimmedInput)
 			if err != nil {
 				fmt.Printf("Error decoding: %v\n", err)
 				return
 			}
 			fmt.Println(string(decoded))
 		} else {
-			encoded := base64.StdEncoding.EncodeToString([]byte(input))
+			encoded := base64.StdEncoding.EncodeToString(input)
 			fmt.Println(encoded)
 		}
 	},

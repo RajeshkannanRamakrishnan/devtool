@@ -20,8 +20,13 @@ If the --upper flag is used, the output will be in uppercase.`,
 	Example: `  devtool md5 "password123"
   devtool md5 --upper "password123"`,
 	Run: func(cmd *cobra.Command, args []string) {
-		input := strings.Join(args, " ")
-		hash := md5.Sum([]byte(input))
+		input, err := getInput(args)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
+		
+		hash := md5.Sum(input)
 		hashString := hex.EncodeToString(hash[:])
 		if upperMd5 {
 			hashString = strings.ToUpper(hashString)
