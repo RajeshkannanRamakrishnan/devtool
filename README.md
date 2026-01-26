@@ -11,7 +11,9 @@
     -   `kill`: Terminate processes by PID or Port number (e.g., kill the process on port 8080).
     -   `ports`: List all processes listening on network ports, with filtering capabilities.
 -   **Web & Network**:
-    -   `server`: Start a static HTTP/HTTPS file server in the current directory.
+    - `server`: Start a static HTTP/HTTPS file server in the current directory.
+-   **Productivity**:
+    -   `standup`: Generate a git daily standup report across multiple repositories.
 -   **Utilities**:
     -   `base64`: Encode and decode Base64 strings, files, or stdin.
     -   `md5`: Compute MD5 hashes of strings, files, or stdin.
@@ -167,6 +169,31 @@ Convert string to uppercase:
 ```bash
 devtool upper "hello world"
 # Output: HELLO WORLD
+
+```
+
+### Git Standup
+
+Generate a report of your commits across git repositories.
+
+Search for git repos in the current directory and list commits by the current user from the last 24 hours:
+```bash
+devtool standup
+```
+
+Look back 5 days:
+```bash
+devtool standup --days 5
+```
+
+Filter by a specific author name:
+```bash
+devtool standup --author "John Doe"
+```
+
+Scan a specific directory for repositories:
+```bash
+devtool standup --path ~/projects/opensource
 ```
 
 ### JSON Utilities
