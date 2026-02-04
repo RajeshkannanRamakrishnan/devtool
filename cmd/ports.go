@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -81,6 +82,19 @@ Use --filter (or -f) to filter by process name in the list view.`,
 					// Safe status string (Status() returns []string, usually single element like "S", "R")
 					statusStr := strings.Join(status, ",")
 
+					// Docker Detection
+					isDockerProxy := strings.Contains(name, "com.docker.backend") ||
+						strings.Contains(name, "vpnkit") ||
+						strings.Contains(name, "docker-proxy")
+
+					var dockerInfo string
+					if isDockerProxy {
+						dockerContainer, err := findDockerContainer(port)
+						if err == nil && dockerContainer != "" {
+							dockerInfo = dockerContainer
+						}
+					}
+
 					fmt.Printf("Port:        %d\n", port)
 					fmt.Printf("PID:         %d\n", pid)
 					fmt.Printf("Process:     %s\n", name)
@@ -90,6 +104,10 @@ Use --filter (or -f) to filter by process name in the list view.`,
 					fmt.Printf("Memory(RSS): %.2f MB\n", rssMB)
 					fmt.Printf("Start Time:  %s\n", timeStr)
 					fmt.Printf("Command:     %s\n", cmdline)
+
+					if dockerInfo != "" {
+						fmt.Printf("\nDocker Container Details:\n%s\n", dockerInfo)
+					}
 					return // Stop after finding the first listener on this port (usually one per proto/interface)
 				}
 			}
@@ -146,4 +164,42 @@ func init() {
 	rootCmd.AddCommand(portsCmd)
 	portsCmd.Flags().StringVarP(&filter, "filter", "f", "", "Filter by process name (case-insensitive)")
 	portsCmd.Flags().BoolVarP(&showPath, "show-path", "p", false, "Show executable path")
+}
+
+// findDockerContainer tries to find which docker container is mapping the given port
+func findDockerContainer(port int) (string, error) {
+	// Look for docker in common paths if not in PATH
+	dockerCmd := "docker"
+	if _, err := os.Stat("/usr/local/bin/docker"); err == nil {
+		dockerCmd = "/usr/local/bin/docker"
+	}
+	// Add other common paths if needed
+
+	cmd := exec.Command(dockerCmd, "ps", "--format", "{{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Ports}}")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.Split(line, "\t")
+		if len(parts) >= 4 {
+			id := parts[0]
+			image := parts[1]
+			name := parts[2]
+			ports := parts[3]
+
+			// Check if the specific port is mapped
+			// Format allows: 0.0.0.0:8080->80/tcp, ::1:8080->80/tcp
+			portStr := strconv.Itoa(port)
+			if strings.Contains(ports, ":"+portStr+"->") || strings.Contains(ports, ":"+portStr+",") {
+				return fmt.Sprintf("ID:      %s\nImage:   %s\nName:    %s", id, image, name), nil
+			}
+		}
+	}
+	return "", nil
 }
