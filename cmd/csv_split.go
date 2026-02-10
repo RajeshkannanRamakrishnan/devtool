@@ -38,6 +38,10 @@ func init() {
 }
 
 func splitCSV(filename string) error {
+	if rowsPerFile <= 0 {
+		return fmt.Errorf("rows per file must be greater than 0")
+	}
+
 	file, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
@@ -61,13 +65,6 @@ func splitCSV(filename string) error {
 	rowCount := 0
 	var writer *csv.Writer
 	var outFile *os.File
-
-	defer func() {
-		if outFile != nil {
-			writer.Flush()
-			outFile.Close()
-		}
-	}()
 
 	for {
 		record, err := reader.Read()
@@ -100,10 +97,27 @@ func splitCSV(filename string) error {
 		rowCount++
 		if rowCount >= rowsPerFile {
 			writer.Flush()
-			outFile.Close()
+			if err := writer.Error(); err != nil {
+				_ = outFile.Close()
+				return fmt.Errorf("failed to flush csv: %w", err)
+			}
+			if err := outFile.Close(); err != nil {
+				return fmt.Errorf("failed to close output file: %w", err)
+			}
 			outFile = nil
 			rowCount = 0
 			fileIndex++
+		}
+	}
+
+	if outFile != nil {
+		writer.Flush()
+		if err := writer.Error(); err != nil {
+			_ = outFile.Close()
+			return fmt.Errorf("failed to flush csv: %w", err)
+		}
+		if err := outFile.Close(); err != nil {
+			return fmt.Errorf("failed to close output file: %w", err)
 		}
 	}
 
