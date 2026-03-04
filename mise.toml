@@ -1,5 +1,5 @@
 [tools]
-go = "latest"
+go = "1.25.5"
 goreleaser = "latest"
 [env]
 CGO_ENABLED = "0"

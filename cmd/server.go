@@ -1,17 +1,23 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -39,6 +45,7 @@ Use --ssl to serve over HTTPS with a self-signed certificate.`,
 		fs := http.FileServer(http.Dir(cwd))
 		mux := http.NewServeMux()
 		mux.Handle("/", fs)
+		handler := requestLogger(mux)
 
 		addr := fmt.Sprintf(":%d", serverPort)
 
@@ -55,7 +62,7 @@ Use --ssl to serve over HTTPS with a self-signed certificate.`,
 
 			server := &http.Server{
 				Addr:    addr,
-				Handler: mux,
+				Handler: handler,
 				TLSConfig: &tls.Config{
 					Certificates: []tls.Certificate{cert},
 				},
@@ -67,7 +74,7 @@ Use --ssl to serve over HTTPS with a self-signed certificate.`,
 			}
 		} else {
 			fmt.Printf("Serving %s at http://localhost%s\n", cwd, addr)
-			if err := http.ListenAndServe(addr, mux); err != nil {
+			if err := http.ListenAndServe(addr, handler); err != nil {
 				log.Fatalf("Server failed: %v", err)
 			}
 		}
@@ -107,4 +114,76 @@ func generateSelfSignedCert() ([]byte, []byte, error) {
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
 
 	return certPEM, keyPEM, nil
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	status int
+	bytes  int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(status int) {
+	lrw.status = status
+	lrw.ResponseWriter.WriteHeader(status)
+}
+
+func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
+	if lrw.status == 0 {
+		lrw.status = http.StatusOK
+	}
+	n, err := lrw.ResponseWriter.Write(b)
+	lrw.bytes += n
+	return n, err
+}
+
+func requestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil && !errors.Is(err, io.EOF) {
+			log.Printf("Failed to read request body: %v", err)
+			http.Error(w, "failed to read request body", http.StatusBadRequest)
+			return
+		}
+		r.Body.Close()
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+		headers := make(map[string]string, len(r.Header))
+		keys := make([]string, 0, len(r.Header))
+		for key := range r.Header {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			headers[key] = strings.Join(r.Header.Values(key), ", ")
+		}
+
+		logData := map[string]any{
+			"timestamp":   time.Now().Format(time.RFC3339),
+			"remote_addr": r.RemoteAddr,
+			"method":      r.Method,
+			"url":         r.URL.String(),
+			"proto":       r.Proto,
+			"host":        r.Host,
+			"headers":     headers,
+			"body":        string(bodyBytes),
+		}
+
+		lrw := &loggingResponseWriter{ResponseWriter: w}
+		start := time.Now()
+		next.ServeHTTP(lrw, r)
+		if lrw.status == 0 {
+			lrw.status = http.StatusOK
+		}
+
+		logData["status"] = lrw.status
+		logData["response_bytes"] = lrw.bytes
+		logData["duration_ms"] = time.Since(start).Milliseconds()
+
+		payload, marshalErr := json.Marshal(logData)
+		if marshalErr != nil {
+			log.Printf("Failed to marshal request log: %v", marshalErr)
+			return
+		}
+		log.Println(string(payload))
+	})
 }
