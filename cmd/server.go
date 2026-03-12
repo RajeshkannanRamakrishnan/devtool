@@ -15,7 +15,6 @@ import (
 	"log"
 	"math/big"
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -29,23 +28,24 @@ var serverSSL bool
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "Start a static file server",
-	Long: `Start a static HTTP file server for the current directory.
+	Short: "Start an HTTP server that responds 200 OK to any request",
+	Long: `Start an HTTP server that responds with 200 OK to any URL path.
 You can specify the port using the --port (or -p) flag.
-Use --ssl to serve over HTTPS with a self-signed certificate.`,
+Use --ssl to serve over HTTPS with a self-signed certificate.
+
+Every request to any path will receive an HTTP 200 OK response
+with a JSON body: {"status": "ok"}.`,
 	Example: `  devtool server
   devtool server --port 9090
   devtool server --ssl`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cwd, err := os.Getwd()
-		if err != nil {
-			log.Fatalf("Error getting current directory: %v", err)
-		}
-
-		fs := http.FileServer(http.Dir(cwd))
-		mux := http.NewServeMux()
-		mux.Handle("/", fs)
-		handler := requestLogger(mux)
+		// Catch-all handler: respond 200 OK with JSON for any path
+		catchAll := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, `{"status": "ok"}`)
+		})
+		handler := requestLogger(catchAll)
 
 		addr := fmt.Sprintf(":%d", serverPort)
 
@@ -68,12 +68,12 @@ Use --ssl to serve over HTTPS with a self-signed certificate.`,
 				},
 			}
 
-			fmt.Printf("Serving %s at https://localhost%s (Self-Signed SSL)\n", cwd, addr)
+			fmt.Printf("Listening at https://localhost%s (Self-Signed SSL) — responds 200 OK to all paths\n", addr)
 			if err := server.ListenAndServeTLS("", ""); err != nil {
 				log.Fatalf("Server failed: %v", err)
 			}
 		} else {
-			fmt.Printf("Serving %s at http://localhost%s\n", cwd, addr)
+			fmt.Printf("Listening at http://localhost%s — responds 200 OK to all paths\n", addr)
 			if err := http.ListenAndServe(addr, handler); err != nil {
 				log.Fatalf("Server failed: %v", err)
 			}
