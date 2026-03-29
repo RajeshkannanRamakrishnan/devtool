@@ -22,6 +22,7 @@ It provides a collection of utilities including:
   - base64: Encode and decode Base64 strings
   - kill: Terminate processes by PID or Port
   - md5: Compute MD5 hashes (with optional uppercase support)
+  - md2pdf: Convert Markdown files to PDF
   - ports: List and filter processes listening on ports
   - server: Start a static HTTP file server
   - upper: Convert strings to uppercase`,
