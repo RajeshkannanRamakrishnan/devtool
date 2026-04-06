@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -9,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -24,6 +22,8 @@ import (
 
 var serverPort int
 var serverSSL bool
+
+const maxLoggedRequestBodyBytes = 64 * 1024
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
@@ -122,6 +122,13 @@ type loggingResponseWriter struct {
 	bytes  int
 }
 
+type bodyCaptureReadCloser struct {
+	body      io.ReadCloser
+	buf       strings.Builder
+	limit     int
+	truncated bool
+}
+
 func (lrw *loggingResponseWriter) WriteHeader(status int) {
 	lrw.status = status
 	lrw.ResponseWriter.WriteHeader(status)
@@ -136,16 +143,36 @@ func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
+func (b *bodyCaptureReadCloser) Read(p []byte) (int, error) {
+	n, err := b.body.Read(p)
+	if n > 0 && b.limit > 0 {
+		remaining := b.limit - b.buf.Len()
+		if remaining > 0 {
+			if n <= remaining {
+				_, _ = b.buf.Write(p[:n])
+			} else {
+				_, _ = b.buf.Write(p[:remaining])
+				b.truncated = true
+			}
+		} else {
+			b.truncated = true
+		}
+	}
+
+	return n, err
+}
+
+func (b *bodyCaptureReadCloser) Close() error {
+	return b.body.Close()
+}
+
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil && !errors.Is(err, io.EOF) {
-			log.Printf("Failed to read request body: %v", err)
-			http.Error(w, "failed to read request body", http.StatusBadRequest)
-			return
+		bodyCapture := &bodyCaptureReadCloser{
+			body:  r.Body,
+			limit: maxLoggedRequestBodyBytes,
 		}
-		r.Body.Close()
-		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		r.Body = bodyCapture
 
 		headers := make(map[string]string, len(r.Header))
 		keys := make([]string, 0, len(r.Header))
@@ -165,7 +192,6 @@ func requestLogger(next http.Handler) http.Handler {
 			"proto":       r.Proto,
 			"host":        r.Host,
 			"headers":     headers,
-			"body":        string(bodyBytes),
 		}
 
 		lrw := &loggingResponseWriter{ResponseWriter: w}
@@ -178,6 +204,10 @@ func requestLogger(next http.Handler) http.Handler {
 		logData["status"] = lrw.status
 		logData["response_bytes"] = lrw.bytes
 		logData["duration_ms"] = time.Since(start).Milliseconds()
+		logData["body"] = bodyCapture.buf.String()
+		if bodyCapture.truncated {
+			logData["body_truncated"] = true
+		}
 
 		payload, marshalErr := json.Marshal(logData)
 		if marshalErr != nil {
