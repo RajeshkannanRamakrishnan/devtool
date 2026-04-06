@@ -2,7 +2,7 @@
 
 # Define variables
 BINARY_NAME="devtool"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 
 
 # Check if mise is installed and run mise install
@@ -23,18 +23,26 @@ fi
 
 echo "Build successful."
 
-echo "Installing $BINARY_NAME to $INSTALL_DIR..."
-# Check if we have write permission to the install directory
-if [ -w "$INSTALL_DIR" ]; then
-    mv "./$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
-else
-    echo "Sudo privileges required to move binary to $INSTALL_DIR"
-    sudo mv "./$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo "Creating install directory at $INSTALL_DIR..."
+    mkdir -p "$INSTALL_DIR"
 fi
+
+echo "Installing $BINARY_NAME to $INSTALL_DIR..."
+mv "./$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
 
 if [ $? -eq 0 ]; then
     echo "$BINARY_NAME installed successfully to $INSTALL_DIR"
-    echo "You can now run '$BINARY_NAME' from anywhere."
+    case ":$PATH:" in
+        *":$INSTALL_DIR:"*)
+            echo "You can now run '$BINARY_NAME' from anywhere."
+            ;;
+        *)
+            echo "$INSTALL_DIR is not currently in your PATH."
+            echo "Add this line to your shell profile to use '$BINARY_NAME' globally:"
+            echo "export PATH=\"$INSTALL_DIR:\$PATH\""
+            ;;
+    esac
 else
     echo "Installation failed!"
     exit 1
