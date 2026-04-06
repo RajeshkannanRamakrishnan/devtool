@@ -11,11 +11,14 @@
     -   `kill`: Terminate processes by PID or Port number (e.g., kill the process on port 8080).
     -   `ports`: List all processes listening on network ports, with filtering capabilities.
 -   **Web & Network**:
-    - `server`: Start a static HTTP/HTTPS file server in the current directory.
+    - `server`: Start a lightweight HTTP/HTTPS server that responds `200 OK` with JSON to any request and logs request details.
+    - `ssl`: Check SSL certificate issuer, expiry date, and days remaining for a domain.
 -   **Productivity**:
     -   `standup`: Generate a git daily standup report across multiple repositories.
 -   **Utilities**:
     -   `base64`: Encode and decode Base64 strings, files, or stdin.
+    -   `csv split`: Split large CSV files into smaller files while preserving headers.
+    -   `md2pdf`: Convert Markdown files to PDF.
     -   `md5`: Compute MD5 hashes of strings, files, or stdin.
     -   `sha256`: Compute SHA256 hashes of strings, files, or stdin.
     -   `upper`: Convert text to uppercase.
@@ -145,11 +148,13 @@ Show executable paths:
 devtool ports --show-path
 ```
 
-### Static File Server
+### HTTP Response Server
 
-Start a server in the current directory on port 8080 (default):
+Start a local server on port 8080 (default). Every request returns `200 OK` with a JSON body:
+
 ```bash
 devtool server
+# Response body: {"status": "ok"}
 ```
 
 Start on a specific port:
@@ -160,7 +165,20 @@ devtool server --port 9090
 Start with HTTPS (Self-Signed Certificate):
 ```bash
 devtool server --ssl
-# Serving at https://localhost:8080
+# Listening at https://localhost:8080
+```
+
+The server also logs each request as structured JSON, including:
+```text
+- timestamp
+- remote address
+- method
+- URL
+- headers
+- request body
+- status
+- response size
+- duration
 ```
 
 ### String Manipulation
@@ -211,6 +229,43 @@ Minify JSON:
 ```bash
 echo '{\n  "foo": "bar"\n}' | devtool json --minify
 # Output: {"foo":"bar"}
+```
+
+### SSL Certificate Check
+
+Inspect the certificate presented by a domain:
+```bash
+devtool ssl example.com
+```
+
+Use an explicit host and port if needed:
+```bash
+devtool ssl example.com:8443
+```
+
+### CSV Split
+
+Split a CSV file into chunks of 1000 rows each:
+```bash
+devtool csv split large.csv
+```
+
+Customize rows per file, output directory, and filename prefix:
+```bash
+devtool csv split data.csv --rows 500 --out ./output --prefix part_
+```
+
+### Markdown To PDF
+
+Convert a Markdown file to PDF:
+```bash
+devtool md2pdf notes.md
+# Generates notes.pdf
+```
+
+Specify the output path explicitly:
+```bash
+devtool md2pdf notes.md exports/notes.pdf
 ```
 
 
