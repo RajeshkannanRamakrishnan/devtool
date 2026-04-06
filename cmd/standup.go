@@ -58,25 +58,31 @@ over the last N days.`,
 
 		fmt.Printf("Found %d repositories. Checking commits for author '%s' in the last %d days...\n\n", len(repos), standupAuthor, standupDays)
 
+		warnings := 0
 		for _, repo := range repos {
+			relPath, _ := filepath.Rel(targetPath, repo)
+			if relPath == "." || relPath == "" {
+				relPath = filepath.Base(repo)
+			}
+
 			logs, err := getGitLog(repo, standupAuthor, standupDays)
 			if err != nil {
-				// Don't fail everything if one repo fails, just log it?
-				// fmt.Printf("Error getting logs for %s: %v\n", repo, err)
+				warnings++
+				fmt.Printf("\033[1;33m! Warning:\033[0m skipping %s: %v\n", relPath, err)
 				continue
 			}
+
 			if len(logs) > 0 {
-				relPath, _ := filepath.Rel(targetPath, repo)
-				if relPath == "." || relPath == "" {
-					relPath = filepath.Base(repo)
-				}
-				
 				fmt.Printf("\033[1;34m# %s\033[0m\n", relPath) // Blue header
 				for _, log := range logs {
 					fmt.Println(log)
 				}
 				fmt.Println()
 			}
+		}
+
+		if warnings > 0 {
+			fmt.Printf("\n\033[1;33mCompleted with %d warning(s).\033[0m Some repositories were skipped.\n", warnings)
 		}
 	},
 }
@@ -100,7 +106,7 @@ func getGitConfigUser() (string, error) {
 
 func findGitRepos(root string) ([]string, error) {
 	var repos []string
-	
+
 	// Optimization: WalkDir is faster than Walk
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -128,9 +134,9 @@ func findGitRepos(root string) ([]string, error) {
 
 func getGitLog(repoPath string, author string, days int) ([]string, error) {
 	// git log --all --since='10 days ago' --author='Rajesh' --pretty=format:'%C(yellow)%h%Creset %s %C(dim white)(%cr)%Creset'
-	
+
 	since := fmt.Sprintf("%d days ago", days)
-	// If days is 1, it might mean "since yesterday". 
+	// If days is 1, it might mean "since yesterday".
 	// To be precise for "standup", usually means "since the start of yesterday" or simply "last 24h"?
 	// "1 days ago" is 24 hours. The user typically wants "what did I do yesterday and today".
 	// Let's stick to git's "N days ago" for simplicity.
@@ -146,10 +152,13 @@ func getGitLog(repoPath string, author string, days int) ([]string, error) {
 	}
 
 	cmd := exec.Command("git", args...)
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		// Exit status 128 usually means not a git repo or bad args, ignore
-		return nil, nil // Return empty, not error, to keep flow going
+		message := strings.TrimSpace(string(out))
+		if message == "" {
+			message = err.Error()
+		}
+		return nil, fmt.Errorf("git log failed: %s", message)
 	}
 
 	output := strings.TrimSpace(string(out))
