@@ -37,14 +37,14 @@ We provide convenience scripts to build and install `devtool` to your system pat
 
 #### macOS / Linux
 
-Run the installation script to build and install to `/usr/local/bin`:
+Run the installation script to build and install to `~/.local/bin`:
 
 ```bash
 ./install.sh
 ```
 
 > [!NOTE]
-> This script builds with `CGO_ENABLED=0` to ensure compatibility and may request `sudo` access to move the binary.
+> This script builds with `CGO_ENABLED=0` to ensure compatibility, creates `~/.local/bin` if needed, and prints a PATH hint if that directory is not already available in your shell.
 
 #### Windows
 
@@ -70,7 +70,7 @@ cd devtool
 CGO_ENABLED=0 go build -o devtool main.go
 
 # Move to a directory in your PATH, e.g.:
-mv devtool /usr/local/bin/
+mv devtool ~/.local/bin/
 ```
 
 ## Usage
@@ -168,7 +168,27 @@ devtool server --ssl
 # Listening at https://localhost:8080
 ```
 
-The server also logs each request as structured JSON, including:
+Return a custom status and body:
+```bash
+devtool server --status 201 --body '{"ok":true}'
+```
+
+Add custom headers:
+```bash
+devtool server --header 'Content-Type: application/json' --header 'X-Debug: true'
+```
+
+Simulate latency:
+```bash
+devtool server --delay 250ms
+```
+
+Control how much of the request body is captured in logs:
+```bash
+devtool server --log-body-limit 8192
+```
+
+The server logs each request as structured JSON, including:
 ```text
 - timestamp
 - remote address
@@ -180,6 +200,8 @@ The server also logs each request as structured JSON, including:
 - response size
 - duration
 ```
+
+If the captured request body exceeds the configured log limit, the log includes `"body_truncated": true`.
 
 ### String Manipulation
 
