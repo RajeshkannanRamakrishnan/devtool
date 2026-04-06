@@ -22,8 +22,11 @@ import (
 
 var serverPort int
 var serverSSL bool
-
-const maxLoggedRequestBodyBytes = 64 * 1024
+var serverStatus int
+var serverBody string
+var serverHeaders []string
+var serverDelay time.Duration
+var serverLogBodyLimit int
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
@@ -33,19 +36,58 @@ var serverCmd = &cobra.Command{
 You can specify the port using the --port (or -p) flag.
 Use --ssl to serve over HTTPS with a self-signed certificate.
 
-Every request to any path will receive an HTTP 200 OK response
-with a JSON body: {"status": "ok"}.`,
+By default, every request receives an HTTP 200 OK response
+with a JSON body: {"status": "ok"}.
+
+You can customize the response status, body, headers, delay,
+and request body log size with flags.`,
 	Example: `  devtool server
   devtool server --port 9090
-  devtool server --ssl`,
+  devtool server --ssl
+  devtool server --status 201 --body '{"ok":true}'
+  devtool server --header 'Content-Type: application/json' --header 'X-Debug: true'
+  devtool server --delay 250ms --log-body-limit 8192`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Catch-all handler: respond 200 OK with JSON for any path
+		if serverStatus < 100 || serverStatus > 999 {
+			log.Fatalf("Invalid status code %d. Must be between 100 and 999.", serverStatus)
+		}
+		if serverLogBodyLimit < 0 {
+			log.Fatalf("Invalid log body limit %d. Must be zero or greater.", serverLogBodyLimit)
+		}
+
+		responseHeaders, err := parseResponseHeaders(serverHeaders)
+		if err != nil {
+			log.Fatalf("Invalid header: %v", err)
+		}
+
+		responseBody := serverBody
+		if responseBody == "" {
+			responseBody = `{"status": "ok"}`
+		}
+
 		catchAll := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintln(w, `{"status": "ok"}`)
+			if serverDelay > 0 {
+				time.Sleep(serverDelay)
+			}
+
+			for key, values := range responseHeaders {
+				for _, value := range values {
+					w.Header().Add(key, value)
+				}
+			}
+
+			if w.Header().Get("Content-Type") == "" {
+				if serverBody == "" {
+					w.Header().Set("Content-Type", "application/json")
+				} else {
+					w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				}
+			}
+
+			w.WriteHeader(serverStatus)
+			fmt.Fprintln(w, responseBody)
 		})
-		handler := requestLogger(catchAll)
+		handler := requestLogger(catchAll, serverLogBodyLimit)
 
 		addr := fmt.Sprintf(":%d", serverPort)
 
@@ -85,6 +127,11 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 	serverCmd.Flags().IntVarP(&serverPort, "port", "p", 8080, "Port to listen on")
 	serverCmd.Flags().BoolVar(&serverSSL, "ssl", false, "Serve over HTTPS with a self-signed certificate")
+	serverCmd.Flags().IntVar(&serverStatus, "status", 200, "HTTP status code to return")
+	serverCmd.Flags().StringVar(&serverBody, "body", "", "Response body to return")
+	serverCmd.Flags().StringArrayVar(&serverHeaders, "header", nil, "Response header in 'Key: Value' format; may be repeated")
+	serverCmd.Flags().DurationVar(&serverDelay, "delay", 0, "Delay before sending the response (for example 250ms, 2s)")
+	serverCmd.Flags().IntVar(&serverLogBodyLimit, "log-body-limit", 64*1024, "Maximum number of request body bytes to capture in logs")
 }
 
 func generateSelfSignedCert() ([]byte, []byte, error) {
@@ -166,11 +213,11 @@ func (b *bodyCaptureReadCloser) Close() error {
 	return b.body.Close()
 }
 
-func requestLogger(next http.Handler) http.Handler {
+func requestLogger(next http.Handler, bodyLimit int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bodyCapture := &bodyCaptureReadCloser{
 			body:  r.Body,
-			limit: maxLoggedRequestBodyBytes,
+			limit: bodyLimit,
 		}
 		r.Body = bodyCapture
 
@@ -216,4 +263,25 @@ func requestLogger(next http.Handler) http.Handler {
 		}
 		log.Println(string(payload))
 	})
+}
+
+func parseResponseHeaders(rawHeaders []string) (http.Header, error) {
+	headers := make(http.Header)
+
+	for _, raw := range rawHeaders {
+		parts := strings.SplitN(raw, ":", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("%q must use 'Key: Value' format", raw)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if key == "" {
+			return nil, fmt.Errorf("%q has an empty header name", raw)
+		}
+
+		headers.Add(key, value)
+	}
+
+	return headers, nil
 }
