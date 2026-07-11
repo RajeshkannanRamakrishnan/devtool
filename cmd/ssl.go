@@ -18,7 +18,7 @@ expiry date, and days remaining without needing to remember openssl commands.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		domain := args[0]
-		
+
 		// Add default port if missing
 		target := domain
 		if _, _, err := net.SplitHostPort(domain); err != nil {
@@ -45,17 +45,17 @@ expiry date, and days remaining without needing to remember openssl commands.`,
 
 		// The first certificate is the leaf
 		cert := certs[0]
-		
+
 		fmt.Printf("\nDomain: \033[1;36m%s\033[0m\n", domain)
 		fmt.Printf("Issuer: %s\n", cert.Issuer.CommonName)
 		if cert.Issuer.Organization != nil && len(cert.Issuer.Organization) > 0 {
 			fmt.Printf("        (%s)\n", cert.Issuer.Organization[0])
 		}
-		
+
 		fmt.Printf("Expiry: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
-		
+
 		daysRemaining := time.Until(cert.NotAfter).Hours() / 24
-		
+
 		// Color code days remaining
 		daysStr := fmt.Sprintf("%.0f", daysRemaining)
 		if daysRemaining < 0 {

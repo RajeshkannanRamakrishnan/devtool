@@ -25,7 +25,7 @@ If the --upper flag is used, the output will be in uppercase.`,
 			fmt.Printf("Error: %v\n", err)
 			return
 		}
-		
+
 		hash := md5.Sum(input)
 		hashString := hex.EncodeToString(hash[:])
 		if upperMd5 {

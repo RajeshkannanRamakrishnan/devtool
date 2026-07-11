@@ -300,6 +300,16 @@ This project uses `mise` to manage tools like `go` and `goreleaser`.
 3.  Make your changes.
 4.  Run `go build` to verify.
 
+### Formatting
+
+Code must be `gofmt`-clean; CI (`.github/workflows/ci.yml`) runs `gofmt -l`, `go vet`, `go build`, and `go test` on every push/PR to `main` and fails if anything is unformatted.
+
+To auto-format staged files on every commit, point git at the repo's hooks once per clone:
+
+```bash
+git config core.hooksPath scripts/hooks
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

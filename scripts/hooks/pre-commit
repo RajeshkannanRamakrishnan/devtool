@@ -1,0 +1,15 @@
+#!/bin/sh
+# Auto-formats staged Go files with gofmt before commit.
+
+files=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
+[ -z "$files" ] && exit 0
+
+unformatted=$(gofmt -l $files)
+if [ -n "$unformatted" ]; then
+    echo "Formatting with gofmt:"
+    echo "$unformatted"
+    gofmt -w $unformatted
+    echo "$unformatted" | xargs git add
+fi
+
+exit 0

@@ -25,7 +25,7 @@ Use the --decode (or -d) flag to decode a Base64 string.`,
 			fmt.Printf("Error: %v\n", err)
 			return
 		}
-		
+
 		if decodeBase64 {
 			// Trim whitespace for safety when decoding
 			trimmedInput := strings.TrimSpace(string(input))

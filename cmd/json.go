@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	minifyJSON    bool
-	noColorJSON   bool
+	minifyJSON  bool
+	noColorJSON bool
 )
 
 // jsonCmd represents the json command
@@ -27,7 +27,7 @@ Can read from stdin or arguments. Supports minification and disabling colors.`,
   devtool json --minify '{"foo": "bar"}'`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var input []byte
-		
+
 		// check if there is input from stdin
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeCharDevice) == 0 {

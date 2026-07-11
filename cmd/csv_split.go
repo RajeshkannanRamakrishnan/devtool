@@ -49,7 +49,7 @@ func splitCSV(filename string) error {
 	defer file.Close()
 
 	reader := csv.NewReader(bufio.NewReader(file))
-	
+
 	// Read header
 	header, err := reader.Read()
 	if err != nil {
@@ -82,7 +82,7 @@ func splitCSV(filename string) error {
 				return fmt.Errorf("failed to create output file %s: %w", outFileName, err)
 			}
 			writer = csv.NewWriter(outFile)
-			
+
 			// Write header to each new file
 			if err := writer.Write(header); err != nil {
 				return fmt.Errorf("failed to write header: %w", err)

@@ -45,7 +45,7 @@ Example:
 
 		// NewPdfRenderer takes init parameters. We'll use defaults generally.
 		pf := mdtopdf.NewPdfRenderer("", "", outputFile, "", nil, mdtopdf.LIGHT)
-		
+
 		err = pf.Process(content)
 		if err != nil {
 			fmt.Printf("Error generating PDF: %v\n", err)
